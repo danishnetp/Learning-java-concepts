@@ -1,4 +1,4 @@
-package com.learning.concepts.programs;
+package com.learning.concepts.thread.practices;
 
 public class PrintPrimeAndOddDemo {
     static void main(String[] args) {

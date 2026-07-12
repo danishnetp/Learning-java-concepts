@@ -33,9 +33,8 @@ JAVA 8 FEATURES - QUICK NOTES
 2) Lambda expressions & Functional Interfaces
    - Functional interfaces are interfaces with exactly one abstract
      method. They can have multiple default or static methods.
-   - The @FunctionalInterface annotation is used to indicate that an
-     interface is intended to be a functional interface (optional but
-     recommended for clarity).
+   - The @FunctionalInterface annotation indicates that an interface is
+     intended to be a functional interface (optional but recommended).
    - Predefined Functional Interfaces in Java 8 include:
      * Predicate<T> - test a condition, return boolean
        method declaration: boolean test(T t);
@@ -65,6 +64,57 @@ JAVA 8 FEATURES - QUICK NOTES
      elements.
    - Common operations include filtering, mapping, and reducing.
    - Streams also support parallel execution for large data sets.
+   - Different ways of creating streams include:
+     * Collection.stream() - creates a stream from a collection
+     * Arrays.stream(array) - creates a stream from an array
+     * Stream.of(values) - creates a stream from specified values
+     * IntStream.range(start, end) - creates a stream of integers in a
+       range
+   - Streams are processed as pipelines of operations:
+     * Intermediate operations return a new stream
+     * Terminal operations produce a result or side effect
+   - Streams can be sequential or parallel, depending on the source and
+     operations.
+   - Intermediate operations are lazy; they run only when a terminal
+     operation is invoked.
+   - Common intermediate operations:
+     * filter(Predicate) - retains elements that match the predicate
+     * map(Function) - transforms each element using the function
+     * flatMap(Function) - flattens nested structures into one stream
+     * distinct() - removes duplicate elements
+     * sorted() - sorts elements naturally or with a comparator
+     * peek(Consumer) - performs an action on each element without
+       modifying the stream
+   - Common terminal operations:
+     * forEach(Consumer) - performs an action for each element
+     * collect(Collector) - gathers elements into a collection or
+       summary result
+     * reduce(BinaryOperator) - combines elements into a single result
+     * count() - returns the number of elements in the stream
+     * anyMatch(Predicate) - checks if any element matches the predicate
+     * allMatch(Predicate) - checks if all elements match the predicate
+     * noneMatch(Predicate) - checks if no elements match the predicate
+     * findFirst() - returns the first element, if present
+     * findAny() - returns any element, if present
+   - Streams can be infinite; operations like limit() can restrict the
+     number of elements processed.
+   - Stream sorting with ascending or descending order can be achieved
+     using sorted() with a comparator.
+   - The minimum and maximum of a stream can be found using
+     min(Comparator) and max(Comparator) terminal operations.
+   - map() and flatMap() can be used to transform and flatten streams
+     of collections or arrays.
+   - LongStream, IntStream, and DoubleStream are specialized streams for primitive types, providing additional methods for numeric operations.
+   - LongSummaryStatistics, IntSummaryStatistics, and DoubleSummaryStatistics can be used to collect summary statistics (count, sum, min, average, max) for numeric streams.
+   Stream API project examples:
+   - String sorting (ascending/descending):
+     StreamSortingExample
+   - Integer sorting with comparators:
+     StreamIntegerSortingExample
+   - Reduce operation (sum, max, longest string):
+     StreamReduceExample
+   - Map sorting by key and value:
+     MapSortingExample
 
 4) Optional class
    - Optional is a container that may or may not contain a value.
@@ -102,4 +152,3 @@ JAVA 8 FEATURES - QUICK NOTES
    - Run demo:
      java -cp build\classes\java\main
      com.learning.concepts.features.java8.Java8InterfaceVsAbstractClassDemo
-

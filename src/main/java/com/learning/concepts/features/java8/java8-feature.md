@@ -1,0 +1,210 @@
+JAVA 8 FEATURES - QUICK NOTES
+
+1) Default methods in interfaces
+   - Java 8 allows interfaces to define default methods.
+   - This helps add new behavior without breaking existing
+     implementations.
+   - Default methods have a body and can be overridden by implementing
+     classes.
+   - Default methods are an interface feature; abstract classes already
+     support concrete methods.
+   - Interfaces cannot provide default implementations for methods from
+     java.lang.Object (for example: toString, equals, hashCode).
+   - If two interfaces define the same default method and a class
+     implements both, the class must override that method to resolve
+     ambiguity.
+
+   Difference between interfaces and abstract classes:
+   - Interface fields are implicitly public, static, and final, while
+     abstract classes can have instance fields with any access modifier.
+   - Abstract classes can define constructors for initialization,
+     while interfaces cannot define constructors.
+   - Both interfaces and abstract classes can define static methods
+     (behavior and usage differ).
+   - Interfaces can define default methods, while abstract classes can
+     define regular concrete methods.
+   - Abstract classes can contain instance and static initializer
+     blocks; interfaces cannot.
+   - Functional interfaces can be used with lambda expressions; abstract
+     classes cannot be used as lambda targets.
+   - Interfaces cannot override methods from java.lang.Object as default
+     methods; abstract classes can override Object methods.
+
+2) Lambda expressions & Functional Interfaces
+   - Functional interfaces are interfaces with exactly one abstract
+     method. They can have multiple default or static methods.
+   - The @FunctionalInterface annotation indicates that an interface is
+     intended to be a functional interface (optional but recommended).
+   - Predefined Functional Interfaces in Java 8 include:
+     * Predicate<T> - test a condition, return boolean
+       method declaration: boolean test(T t);
+     * Function<T, R> - apply a transformation from T to R
+       method declaration: R apply(T t);
+     * Consumer<T> - consume a value and return void
+       method declaration: void accept(T t);
+     * Supplier<T> - supply/generate a value
+       method declaration: T get();
+     * UnaryOperator<T> - unary operation on a single operand
+       method declaration: T apply(T t);
+     * BinaryOperator<T> - binary operation on two operands
+       method declaration: T apply(T t1, T t2);
+     * BiFunction<T, U, R> - apply a function to two inputs
+       method declaration: R apply(T t, U u);
+     * BiConsumer<T, U> - consume two values and return void
+       method declaration: void accept(T t, U u);
+     * BiPredicate<T, U> - test two values, return boolean
+       method declaration: boolean test(T t, U u);
+   - Lambda expressions provide a concise way to implement functional
+     interfaces.
+   - They improve readability by enabling anonymous function-style code.
+   - They are commonly used with collections and stream operations.
+
+3) Streams API
+   - Streams provide a functional style for processing sequences of
+     elements.
+   - Common operations include filtering, mapping, and reducing.
+   - Streams also support parallel execution for large data sets.
+   - Different ways of creating streams include:
+     * Collection.stream() - creates a stream from a collection
+     * Arrays.stream(array) - creates a stream from an array
+     * Stream.of(values) - creates a stream from specified values
+     * IntStream.range(start, end) - creates a stream of integers in a
+       range
+   - Streams are processed as pipelines of operations:
+     * Intermediate operations return a new stream
+     * Terminal operations produce a result or side effect
+   - Streams can be sequential or parallel, depending on the source and
+     operations.
+   - Intermediate operations are lazy; they run only when a terminal
+     operation is invoked.
+   - Common intermediate operations:
+     * filter(Predicate) - retains elements that match the predicate
+     * map(Function) - transforms each element using the function
+     * flatMap(Function) - flattens nested structures into one stream
+     * distinct() - removes duplicate elements
+     * sorted() - sorts elements naturally or with a comparator
+     * peek(Consumer) - performs an action on each element without
+       modifying the stream
+   - Common terminal operations:
+     * forEach(Consumer) - performs an action for each element
+     * collect(Collector) - gathers elements into a collection or
+       summary result
+     * reduce(BinaryOperator) - combines elements into a single result
+     * count() - returns the number of elements in the stream
+     * anyMatch(Predicate) - checks if any element matches the predicate
+     * allMatch(Predicate) - checks if all elements match the predicate
+     * noneMatch(Predicate) - checks if no elements match the predicate
+     * findFirst() - returns the first element, if present
+     * findAny() - returns any element, if present
+   - Streams can be infinite; operations like limit() can restrict the
+     number of elements processed.
+   - Stream sorting with ascending or descending order can be achieved
+     using sorted() with a comparator.
+   - The minimum and maximum of a stream can be found using
+     min(Comparator) and max(Comparator) terminal operations.
+   - map() and flatMap() can be used to transform and flatten streams
+     of collections or arrays.
+   - LongStream, IntStream, and DoubleStream are specialized streams
+     for primitive types, with extra numeric helper operations.
+   - LongSummaryStatistics, IntSummaryStatistics, and
+     DoubleSummaryStatistics can collect summary statistics (count,
+     sum, min, average, max) for numeric streams.
+   Stream API project examples:
+   - String sorting (ascending/descending):
+     StreamSortingExample
+   - Integer sorting with comparators:
+     StreamIntegerSortingExample
+   - Reduce operation (sum, max, longest string):
+     StreamReduceExample
+   - Map sorting by key and value:
+     MapSortingExample
+
+4) Optional class
+   - Optional is a container that may or may not contain a value.
+   - It helps reduce null-related errors by making absence explicit.
+   - Typical usage includes presence checks and safe value retrieval.
+
+5) Date and Time API
+   - Java 8 introduced the java.time package for modern date/time
+     handling.
+   - The java.time package is based on the ISO-8601 calendar system.
+   - It offers clearer and more robust types than older date/time APIs.
+   - Common classes include LocalDate, LocalTime, LocalDateTime,
+     and ZonedDateTime.
+
+   Why java.util.Date and java.util.Calendar were problematic:
+   - java.util.Date mixes date and time concerns in one type and is
+     mutable, which can create thread-safety and bug-prone code.
+   - Several Date APIs were deprecated, and date calculations are not
+     very intuitive.
+   - java.util.Calendar is mutable, complex, and uses many integer
+     constants (MONTH, DAY_OF_WEEK, etc.), reducing readability.
+   - Time zone handling with old APIs is error-prone and less explicit.
+
+   How java.time solves these issues:
+   - Core types are immutable and thread-safe.
+   - Separate types model separate concepts clearly:
+     * LocalDate - date only (no time, no timezone)
+     * LocalTime - time only (no date, no timezone)
+     * LocalDateTime - date + time (no timezone)
+     * ZonedDateTime - date + time + timezone
+   - Rich, fluent API for parsing, formatting, comparison, arithmetic,
+     and timezone conversion.
+
+   Note on Joda-Time (org.joda.time):
+   - Before Java 8, Joda-Time was the recommended replacement for
+     Date/Calendar.
+   - Java 8's java.time API is inspired by Joda-Time design principles.
+   - For modern Java applications, prefer java.time over Joda-Time.
+
+   - Periodic classes like Year, Month, DayOfWeek, and Duration provide
+     additional functionality for date/time calculations. Example of its usage:
+   - Year year = Year.of(2026);
+
+   Examples:
+   - LocalDate (date only):
+     LocalDate today = LocalDate.now();
+     LocalDate customDate = LocalDate.of(2026, 7, 13);
+
+   - LocalTime (time only):
+     LocalTime nowTime = LocalTime.now();
+     LocalTime customTime = LocalTime.of(14, 30, 0);
+
+   - LocalDateTime (date + time):
+     LocalDateTime nowDateTime = LocalDateTime.now();
+     LocalDateTime meeting = LocalDateTime.of(2026, 7, 13, 10, 15);
+
+   - ZonedDateTime (date + time + timezone):
+     ZonedDateTime indiaTime = ZonedDateTime.now(ZoneId.of("Asia/Kolkata"));
+     ZonedDateTime utcTime = indiaTime.withZoneSameInstant(ZoneId.of("UTC"));
+
+   Key differences:
+   - java.util.Date represents an instant (timestamp) and prints with
+     timezone-influenced formatting.
+   - java.time.LocalDate represents only a calendar date (yyyy-MM-dd),
+     without time or timezone.
+
+6) Project examples (class mapping)
+   - Interface fields vs abstract class fields:
+     InterfaceFieldsExample
+   - Abstract class constructor usage:
+     AbstractConstructorExample
+   - Static methods behavior in interface vs abstract class:
+     StaticMethodBehaviorExample
+   - Default interface method vs concrete abstract class method:
+     DefaultMethodVsConcreteMethodExample
+   - Initializer blocks (abstract class only):
+     InitializerBlockExample
+   - Functional interface with lambda vs abstract class:
+     FunctionalInterfaceLambdaExample
+   - java.lang.Object method rules:
+     ObjectMethodOverrideExample
+   - Run all examples from one entry point:
+     Java8InterfaceVsAbstractClassDemo
+
+7) Quick run reference
+   - Compile:
+     .\gradlew.bat classes
+   - Run demo:
+     java -cp build\classes\java\main
+     com.learning.concepts.features.java8.Java8InterfaceVsAbstractClassDemo

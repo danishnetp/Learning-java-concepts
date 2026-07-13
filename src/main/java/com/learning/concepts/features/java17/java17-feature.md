@@ -6,11 +6,19 @@ features, stronger security defaults, and JVM/API improvements.
 
 ---
 
-## 1) Sealed Classes (Standard)
-- Sealed classes and interfaces became standard in Java 17.
-- Lets you explicitly control which classes can extend/implement a type.
+## 1) Sealed Classes and Interfaces (Standard)
+- Sealed classes and interfaces are now a standard language feature in Java 17.
+- Finalized after being a preview in Java 15/16.
+- Lets you explicitly control which classes can extend or which interfaces can implement a type.
+- Uses the `permits` clause to list allowed subclasses or implementers.
+- Permitted types must be declared as `final`, `sealed`, or `non-sealed`.
+- Works for both **sealed classes** and **sealed interfaces**.
 
 ```java
+// Sealed Class
+public sealed class Animal permits Dog, Cat {}
+
+// Sealed Interface
 public sealed interface Shape permits Circle, Rectangle {}
 ```
 

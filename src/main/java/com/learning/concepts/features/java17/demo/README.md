@@ -6,7 +6,7 @@ Each Java 17 feature is demonstrated in a separate class with its own
 ## Feature demos
 
 - `SealedClassesStandardDemo17`
-  - Demonstrates sealed classes/interfaces as standard feature.
+  - Demonstrates sealed classes and sealed interfaces with working examples.
 
 - `PatternMatchingSwitchPreviewInfoDemo17`
   - Explains pattern matching for switch (preview in Java 17).

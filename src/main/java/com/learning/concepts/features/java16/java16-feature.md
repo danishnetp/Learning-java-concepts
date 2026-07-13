@@ -33,12 +33,18 @@ if (obj instanceof String s) {
 }
 ```
 
-## 4) Sealed Classes (Second Preview)
+## 4) Sealed Classes and Interfaces (Second Preview)
 - Continued as a preview feature with refinements.
-- Restricts inheritance to explicitly permitted classes.
+- Restricts inheritance for both **classes** and **interfaces**.
+- Uses `permits` clause to list allowed subclasses or implementers.
+- Permitted classes/interfaces must be `final`, `sealed`, or `non-sealed`.
 
 ```java
+// Sealed Class
 public sealed class Shape permits Circle, Rectangle {}
+
+// Sealed Interface
+public sealed interface Vehicle permits Car, Bike {}
 ```
 
 ## 5) Vector API (Incubator)
@@ -75,6 +81,27 @@ public sealed class Shape permits Circle, Rectangle {}
 ## 13) Security and TLS Updates
 - Ongoing security provider, TLS, and crypto algorithm updates.
 
+## 14) Date/Time Formatting Enhancement: Day Period Pattern `B`
+- Java 16 improved `DateTimeFormatter` support for localized day periods.
+- Pattern letter `B` can produce values like morning, afternoon, evening,
+  or night (locale-dependent), beyond basic AM/PM.
+
+```java
+DateTimeFormatter formatter = DateTimeFormatter.ofPattern("h B", Locale.ENGLISH);
+String text = formatter.format(LocalTime.of(21, 0));
+```
+
+## 15) Stream API Enhancement: `Stream.toList()`
+- Java 16 added `Stream.toList()` as a convenient terminal operation.
+- It returns an unmodifiable `List` and removes the need for
+  `collect(Collectors.toUnmodifiableList())` in common cases.
+
+```java
+List<String> names = Stream.of("A", "B", "C")
+        .map(String::toLowerCase)
+        .toList();
+```
+
 ---
 
 ## Sample classes in this project
@@ -89,6 +116,8 @@ public sealed class Shape permits Circle, Rectangle {}
 - Strong encapsulation info: `StrongEncapsulationInfoDemo16`
 - `jpackage` standard info: `JpackageStandardInfoDemo16`
 - Removed AOT/Graal info: `RemovedAotGraalInfoDemo16`
+- Date/Time formatter day-period enhancement: `DateTimeFormatterDayPeriodDemo16`
+- Stream API enhancement: `StreamApiEnhancementsDemo16`
 - Runner: `Java16AllFeaturesRunner`
 
 ## Quick run

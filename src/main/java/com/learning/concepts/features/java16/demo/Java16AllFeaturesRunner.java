@@ -22,6 +22,8 @@ public class Java16AllFeaturesRunner {
         StrongEncapsulationInfoDemo16.main(args);
         JpackageStandardInfoDemo16.main(args);
         RemovedAotGraalInfoDemo16.main(args);
+        DateTimeFormatterDayPeriodDemo16.main(args);
+        StreamApiEnhancementsDemo16.main(args);
     }
 }
 

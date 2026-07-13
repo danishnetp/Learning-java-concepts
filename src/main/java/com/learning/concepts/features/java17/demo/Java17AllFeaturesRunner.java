@@ -19,7 +19,6 @@ public class Java17AllFeaturesRunner {
         StrongEncapsulationInfoDemo17.main(args);
         StrictFloatingPointInfoDemo17.main(args);
         DeserializationFilterInfoDemo17.main(args);
-        AppletDeprecationInfoDemo17.main(args);
         RmiActivationRemovalInfoDemo17.main(args);
         MetalPipelineInfoDemo17.main(args);
     }

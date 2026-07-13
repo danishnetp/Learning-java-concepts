@@ -12,7 +12,7 @@ Each Java 16 feature is demonstrated in a separate class with its own
   - Demonstrates pattern matching for `instanceof` (standard in Java 16).
 
 - `SealedClassesPreviewInfoDemo16`
-  - Explains sealed classes in second preview state.
+  - Demonstrates sealed classes and sealed interfaces with working examples.
 
 - `VectorApiInfoDemo16`
   - Summarizes Vector API incubator purpose.
@@ -34,6 +34,12 @@ Each Java 16 feature is demonstrated in a separate class with its own
 
 - `RemovedAotGraalInfoDemo16`
   - Summarizes AOT and old Graal JIT experimental removal.
+
+- `DateTimeFormatterDayPeriodDemo16`
+  - Demonstrates day-period formatting with `DateTimeFormatter` pattern `B`.
+
+- `StreamApiEnhancementsDemo16`
+  - Demonstrates `Stream.toList()` added in Java 16.
 
 - `Java16AllFeaturesRunner`
   - Runs all demos in sequence from one main method.

@@ -207,13 +207,39 @@ This avoids manual null checks and makes intent clearer.
 
 **A:**
 
-- **Fail-fast** iterators usually throw `ConcurrentModificationException` when the map is structurally modified during iteration
-- **Weakly consistent** iterators tolerate concurrent updates and may reflect some or all of them without throwing that exception
+- **Fail-fast** iterators detect structural modification and may throw `ConcurrentModificationException` quickly.
+- **Weakly consistent** iterators do not fail on concurrent modification; they continue iteration and may see some updates.
+
+What is a structural modification?
+
+- operations that change map size or structure, such as `put` of a new key, `remove`, `clear`, resize-related structural changes
+- updating value of an existing key may or may not be treated as structural depending on implementation details and context
+
+Behavior details interviewers ask:
+
+- fail-fast is a **best-effort bug detection mechanism**, not a hard thread-safety guarantee
+- weakly consistent iterators are **not snapshot iterators**; they can reflect state at or after iterator creation
+- weakly consistent iteration may miss some entries added concurrently and may still include entries removed concurrently
+
+Quick comparison:
+
+| Aspect | Fail-fast (`HashMap`) | Weakly consistent (`ConcurrentHashMap`) |
+|--------|------------------------|-----------------------------------------|
+| Concurrent modification during iteration | usually throws `ConcurrentModificationException` | does not throw `ConcurrentModificationException` |
+| View of data | intended to detect unsafe modification | progressing view that may include some updates |
+| Thread-safe iteration by itself | No | Designed for concurrent access |
 
 Examples:
 
 - `HashMap` -> fail-fast
+- `ArrayList` -> fail-fast
 - `ConcurrentHashMap` -> weakly consistent
+- `CopyOnWriteArrayList` -> snapshot-style (different from weakly consistent)
+
+Practical rule:
+
+- single-threaded / externally synchronized iteration -> fail-fast collections are fine
+- truly concurrent read-write iteration -> prefer weakly consistent iterators (`ConcurrentHashMap`)
 
 ---
 

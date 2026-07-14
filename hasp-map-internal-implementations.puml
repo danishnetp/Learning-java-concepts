@@ -1,0 +1,246 @@
+@startuml
+' ==========================================================
+' HashMap Internal Implementation - Class/Structure Diagram
+' ==========================================================
+title HashMap Internal Implementation (Simplified JDK8+ view)
+
+skinparam classAttributeIconSize 0
+
+class HashMap<K,V> {
+  - static final int DEFAULT_INITIAL_CAPACITY
+  - static final int MAXIMUM_CAPACITY
+  - static final float DEFAULT_LOAD_FACTOR
+  - static final int TREEIFY_THRESHOLD
+  - static final int UNTREEIFY_THRESHOLD
+  - static final int MIN_TREEIFY_CAPACITY
+  - Node<K,V>[] table
+  - Set<Map.Entry<K,V>> entrySet
+  - int size
+  - int modCount
+  - int threshold
+  - float loadFactor
+  + HashMap()
+  + HashMap(int initialCapacity)
+  + HashMap(int initialCapacity, float loadFactor)
+  + V put(K key, V value)
+  + V get(Object key)
+  + V remove(Object key)
+  + boolean containsKey(Object key)
+  + int size()
+  - int hash(Object key)
+  - Node<K,V> getNode(int hash, Object key)
+  - V putVal(int hash, K key, V value, boolean onlyIfAbsent, boolean evict)
+  - Node<K,V>[] resize()
+  - void treeifyBin(Node<K,V>[] tab, int hash)
+}
+
+class Node<K,V> {
+  + final int hash
+  + final K key
+  + V value
+  + Node<K,V> next
+  + Node(int hash, K key, V value, Node<K,V> next)
+}
+
+class TreeNode<K,V> {
+  + TreeNode<K,V> parent
+  + TreeNode<K,V> left
+  + TreeNode<K,V> right
+  + TreeNode<K,V> prev
+  + boolean red
+  + TreeNode(int hash, K key, V val, Node<K,V> next)
+}
+
+interface Map<K,V>
+interface Entry<K,V>
+
+Map <|.. HashMap
+Node ..|> Entry
+TreeNode --|> Node
+HashMap "1" *-- "0..*" Node : table buckets
+Node "1" --> "0..1" Node : next (collision chain)
+
+note right of HashMap
+Bucket index formula:
+index = (table.length - 1) & hash
+
+Collision handling:
+1) If same key (hash + equals), overwrite value
+2) Else append to linked list in same bucket
+3) If chain length >= TREEIFY_THRESHOLD and
+   table length >= MIN_TREEIFY_CAPACITY,
+   convert list to red-black tree
+
+Resize trigger:
+if size > threshold
+threshold = capacity * loadFactor
+end note
+
+note right of TreeNode
+Used for high-collision buckets to keep
+lookup closer to O(log n) in worst case.
+end note
+
+note right of Node
+Linked-list maintenance in a bucket:
+1) head = table[index]
+2) Traverse via next until key match or tail
+3) Key match => update node.value only
+4) No match => tail.next = new Node(...)
+5) Remove middle/tail => prev.next = curr.next
+6) Remove head => table[index] = head.next
+end note
+@enduml
+
+@startuml
+' ==========================================================
+' Sequence Diagram: put(key, value) with Collision Handling
+' ==========================================================
+title HashMap.put(key, value) - Collision Path + Resize
+
+autonumber
+actor Client
+participant "HashMap" as HM
+participant "table[index]" as Bucket
+participant "Node chain / TreeNode" as Chain
+participant "Resize" as RS
+
+Client -> HM: put(key, value)
+HM -> HM: hash = hash(key)
+HM -> HM: if table is null or empty => resize/init
+HM -> HM: index = (n - 1) & hash
+HM -> Bucket: read first node
+
+alt bucket empty
+  HM -> Bucket: insert new Node(hash,key,value,null)
+  HM -> HM: size++ ; modCount++
+else collision (bucket already has node(s))
+  HM -> Chain: compare first node (hash + equals)
+  alt first node matches key
+    HM -> Chain: replace value
+    HM --> Client: return oldValue
+  else first is TreeNode
+    HM -> Chain: putTreeVal(...)
+    alt tree has same key
+      HM -> Chain: replace value
+      HM --> Client: return oldValue
+    else inserted new tree node
+      HM -> HM: size++ ; modCount++
+    end
+  else linked-list bucket
+    loop traverse next nodes
+      HM -> Chain: check hash + equals
+      alt matching key found
+        HM -> Chain: replace value
+        HM --> Client: return oldValue
+      end
+    end
+    HM -> Chain: append new Node at tail
+    HM -> HM: size++ ; modCount++
+    opt binCount >= TREEIFY_THRESHOLD - 1
+      HM -> HM: treeifyBin(table, hash)
+    end
+  end
+end
+
+opt size > threshold
+  HM -> RS: resize()
+  RS -> HM: rehash/relink nodes into new table
+end
+
+HM --> Client: return null (new insert)
+@enduml
+
+@startuml
+' ==========================================================
+' Sequence Diagram: Linked-List Maintenance on Collision
+' ==========================================================
+title HashMap bucket linked-list maintenance (collision bucket)
+
+autonumber
+actor Client
+participant "HashMap" as HM
+participant "table[index]" as Bucket
+participant "head / prev / curr" as Ptr
+
+Client -> HM: put(k, v)
+HM -> HM: index = (n - 1) & hash(k)
+HM -> Bucket: head = table[index]
+
+alt head == null
+  HM -> Bucket: table[index] = new Node(k,v,null)
+else collision bucket (head != null)
+  HM -> Ptr: curr = head ; prev = null
+  loop while curr != null
+    HM -> Ptr: compare curr.hash + equals(curr.key, k)
+    alt same key
+      HM -> Ptr: curr.value = v
+      HM --> Client: return oldValue
+    else not same
+      HM -> Ptr: prev = curr ; curr = curr.next
+    end
+  end
+
+  HM -> Ptr: prev is tail
+  HM -> Ptr: prev.next = new Node(k,v,null)
+  HM --> Client: return null
+end
+
+== Optional remove(k) pointer relink ==
+Client -> HM: remove(k)
+HM -> Bucket: head = table[index]
+HM -> Ptr: curr = head ; prev = null
+loop walk chain
+  HM -> Ptr: find node with key k
+end
+
+alt node not found
+  HM --> Client: return null
+else removing head (prev == null)
+  HM -> Bucket: table[index] = curr.next
+  HM --> Client: return removedValue
+else removing middle/tail
+  HM -> Ptr: prev.next = curr.next
+  HM --> Client: return removedValue
+end
+@enduml
+
+@startuml
+' ==========================================================
+' Sequence Diagram: get(key) with Collision Traversal
+' ==========================================================
+title HashMap.get(key) - Direct Hit, Chain Walk, Tree Search
+
+autonumber
+actor Client
+participant "HashMap" as HM
+participant "table[index]" as Bucket
+participant "Node chain / TreeNode" as Chain
+
+Client -> HM: get(key)
+HM -> HM: hash = hash(key)
+HM -> HM: index = (n - 1) & hash
+HM -> Bucket: first = table[index]
+
+alt first is null
+  HM --> Client: return null
+else first.hash == hash && equals(first.key, key)
+  HM --> Client: return first.value
+else first is TreeNode
+  HM -> Chain: getTreeNode(hash, key)
+  alt found
+    HM --> Client: return node.value
+  else not found
+    HM --> Client: return null
+  end
+else linked list collision chain
+  loop while next != null
+    HM -> Chain: compare node.hash + equals(node.key, key)
+    alt found
+      HM --> Client: return node.value
+    end
+  end
+  HM --> Client: return null
+end
+@enduml
+

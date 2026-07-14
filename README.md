@@ -22,3 +22,9 @@ gradle run --args="Java"
 
 - The project uses Java toolchain version 25 in `build.gradle`.
 - Tests are configured with JUnit 5.
+
+## Learning Docs
+
+- HashMap guide: `src/main/java/com/learning/concepts/collections/collections-feature.md`
+- HashMap diagrams: `hasp-map-internal-implementations.puml`
+

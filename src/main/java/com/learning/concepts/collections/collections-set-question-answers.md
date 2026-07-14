@@ -1,6 +1,6 @@
 # Java `Set` Interface and Implementations - Interview Questions and Answers
 
-This file covers commonly asked and currently relevant Java interview questions on the `Set` interface and its major implemented classes: `HashSet`, `LinkedHashSet`, `TreeSet`, `CopyOnWriteArraySet`, and `EnumSet`.
+This file covers commonly asked and currently relevant Java interview questions on the `Set` interface and its major implemented classes: `HashSet`, `LinkedHashSet`, `TreeSet`, `EnumSet`, `CopyOnWriteArraySet`, and `ConcurrentSkipListSet`.
 
 ---
 
@@ -24,6 +24,7 @@ Common implementations:
 - `TreeSet`
 - `CopyOnWriteArraySet`
 - `EnumSet`
+- `ConcurrentSkipListSet`
 
 ---
 
@@ -147,6 +148,58 @@ Set<String> set = Set.copyOf(existingSet);
 - need sorted order → `TreeSet`
 - need enum values only → `EnumSet`
 - need thread-safe reads → `CopyOnWriteArraySet`
+- need concurrent sorted order → `ConcurrentSkipListSet`
+
+---
+
+## Q10: How does a `Set` determine duplicates?
+
+**A:** It depends on the implementation:
+
+- `HashSet` / `LinkedHashSet` use `hashCode()` and `equals()`
+- `TreeSet` uses `compareTo()` or `Comparator`
+- `EnumSet` uses enum identity/order internally
+
+Important interview trap:
+
+- in `TreeSet`, if `compareTo()` says two objects are equal (`0`), only one is kept even if `equals()` behaves differently
+
+---
+
+## Q11: Why are mutable elements risky in a `Set`?
+
+**A:** If an element changes after insertion:
+
+- in `HashSet`, its `hashCode()` or `equals()` result may change
+- the set may still contain the object, but `contains()` or `remove()` may fail to find it
+
+So immutable elements are strongly preferred for hash-based sets.
+
+---
+
+## Q12: What set operations are commonly asked in interviews?
+
+**A:** Common logical set operations are:
+
+- **union** → all unique elements from both sets
+- **intersection** → only common elements
+- **difference** → elements in one set but not the other
+
+Java examples:
+
+```java
+Set<Integer> a = new HashSet<>(Arrays.asList(1, 2, 3));
+Set<Integer> b = new HashSet<>(Arrays.asList(3, 4, 5));
+
+Set<Integer> union = new HashSet<>(a);
+union.addAll(b); // [1, 2, 3, 4, 5]
+
+Set<Integer> intersection = new HashSet<>(a);
+intersection.retainAll(b); // [3]
+
+Set<Integer> difference = new HashSet<>(a);
+difference.removeAll(b); // [1, 2]
+```
 
 ---
 
@@ -261,6 +314,18 @@ String[] arr = set.toArray(new String[0]);
 
 ---
 
+## Q8: What are initial capacity and load factor in `HashSet`?
+
+**A:** Since `HashSet` is backed by `HashMap`, the same resizing rules apply.
+
+- default initial capacity: `16`
+- default load factor: `0.75`
+- resize threshold = `capacity * loadFactor`
+
+So if many elements are expected, pre-sizing the `HashSet` can reduce rehashing cost.
+
+---
+
 ## Interview one-liner
 
 `HashSet` is a fast, unordered set backed by `HashMap`; ideal for membership tests with O(1) average performance.
@@ -329,6 +394,17 @@ Example: processing a sequence of unique IDs in the order they were first seen.
 | Performance     | O(1) average         | O(1) average         | O(log n)            |
 | Memory          | Less overhead        | More (linked list)   | More (tree nodes)   |
 | `null` support  | One allowed          | One allowed          | Not allowed         |
+
+---
+
+## Q6: What is a common mistake about `LinkedHashSet`?
+
+**A:** A common mistake is saying `LinkedHashSet` is **sorted**.
+
+It is **not sorted**.
+
+- it preserves **insertion order**
+- if you need sorted order, use `TreeSet`
 
 ---
 
@@ -435,7 +511,39 @@ Calling `compareTo(null)` would throw `NullPointerException`.
 
 **A:** No.
 
-For concurrent sorted access, use `Collections.synchronizedSortedSet()` wrapper.
+For concurrent sorted access, a more modern option is `ConcurrentSkipListSet`.
+
+---
+
+## Q8: What happens if elements are not mutually comparable in `TreeSet`?
+
+**A:** `TreeSet` requires all elements to be comparable with each other.
+
+If they are not, insertion can throw `ClassCastException`.
+
+Example interview trap:
+
+- mixing incompatible types
+- custom class without `Comparable` and without `Comparator`
+
+---
+
+## Q9: Why must `compareTo()` be consistent with `equals()` in `TreeSet`?
+
+**A:** Because `TreeSet` uses comparison result to decide uniqueness.
+
+If `compareTo()` returns `0`, `TreeSet` treats elements as duplicates.
+
+If this is inconsistent with `equals()`, set behavior can be surprising.
+
+---
+
+## Q10: Are `subSet()`, `headSet()`, and `tailSet()` copies?
+
+**A:** No. They are **views** backed by the original set.
+
+- changes in the view reflect in the original set
+- structural changes outside the valid range can cause unexpected behavior
 
 ---
 
@@ -510,6 +618,34 @@ Common use case: flags, permission sets
 
 ---
 
+## Q5: In what order does `EnumSet` iterate?
+
+**A:** `EnumSet` iterates in the **natural declaration order** of enum constants.
+
+Example:
+
+```java
+enum Color { RED, GREEN, BLUE }
+EnumSet<Color> set = EnumSet.of(Color.BLUE, Color.RED);
+System.out.println(set); // [RED, BLUE]
+```
+
+Even if added in different order, iteration follows enum declaration order.
+
+---
+
+## Q6: What useful factory methods of `EnumSet` are often asked?
+
+**A:**
+
+- `allOf()` — all enum constants
+- `noneOf()` — empty set
+- `of()` — selected constants
+- `range()` — constants in declaration range
+- `complementOf()` — all constants not in another EnumSet
+
+---
+
 ## Interview one-liner
 
 `EnumSet` is a blazingly fast, memory-efficient set for enum values, backed by bit vectors.
@@ -526,7 +662,7 @@ Common use case: flags, permission sets
 - every write operation copies the underlying array
 - reads are lock-free
 - write operations are O(n) due to array copy
-- does not allow `null` elements
+- allows `null` elements
 - weakly consistent iterators (not fail-fast)
 
 ---
@@ -554,7 +690,19 @@ Common use case: flags, permission sets
 
 ---
 
-## Q4: When should you use `CopyOnWriteArraySet`?
+## Q4: Are iterators of `CopyOnWriteArraySet` fail-fast?
+
+**A:** No.
+
+They are snapshot-style iterators:
+
+- they iterate over a stable snapshot of the array
+- they do not throw `ConcurrentModificationException`
+- they do not reflect updates made after iterator creation
+
+---
+
+## Q5: When should you use `CopyOnWriteArraySet`?
 
 **A:** Use when:
 
@@ -567,7 +715,7 @@ Example: listener sets, observer patterns, permission sets in servers.
 
 ---
 
-## Q5: Why not use it for write-heavy workloads?
+## Q6: Why not use it for write-heavy workloads?
 
 **A:** Because every `add()` or `remove()` copies the entire array (O(n)).
 
@@ -575,9 +723,67 @@ For write-heavy scenarios, use `Collections.synchronizedSet()` or manually synch
 
 ---
 
+## Q7: How does `CopyOnWriteArraySet` compare to `Collections.synchronizedSet()`?
+
+**A:**
+
+| Aspect | `CopyOnWriteArraySet` | `Collections.synchronizedSet()` |
+|--------|------------------------|---------------------------------|
+| Reads  | Lock-free snapshot reads | Lock required |
+| Writes | O(n) due to full copy | Usually cheaper than copy-on-write |
+| Iteration | Safe without external lock | External synchronization recommended |
+| Best for | Read-heavy workloads | Balanced read/write with simple synchronization |
+
+---
+
 ## Interview one-liner
 
 `CopyOnWriteArraySet` sacrifices write performance for lock-free reads and safe iteration; ideal for read-dominated concurrent workloads.
+
+---
+
+# `ConcurrentSkipListSet` - Question and Answer
+
+## Q1: What is `ConcurrentSkipListSet` in Java?
+
+**A:** `ConcurrentSkipListSet` is a thread-safe, sorted `Set` implementation based on a skip list.
+
+- elements are maintained in sorted order
+- designed for concurrent access
+- `add`, `remove`, `contains` are O(log n) average
+- does not allow `null`
+- iterators are weakly consistent
+
+---
+
+## Q2: How is `ConcurrentSkipListSet` different from `TreeSet`?
+
+**A:**
+
+| Aspect | `ConcurrentSkipListSet` | `TreeSet` |
+|--------|--------------------------|-----------|
+| Thread safety | Yes | No |
+| Internal structure | Skip list | Red-black tree |
+| Iterators | Weakly consistent | Fail-fast |
+| Sorted order | Yes | Yes |
+
+---
+
+## Q3: When should you use `ConcurrentSkipListSet`?
+
+**A:** Use it when you need:
+
+- sorted unique elements
+- concurrent reads and writes
+- range queries in a concurrent environment
+
+Example: a live leaderboard, sorted active sessions, or ordered event timestamps.
+
+---
+
+## Interview one-liner
+
+`ConcurrentSkipListSet` is the concurrent alternative to `TreeSet`: sorted, scalable, thread-safe, and weakly consistent during iteration.
 
 ---
 
@@ -597,21 +803,23 @@ For write-heavy scenarios, use `Collections.synchronizedSet()` or manually synch
 - not knowing `EnumSet` exists for enum values
 - trying to add mutable objects (or to sets with weak comparators)
 - assuming `Set` iteration order across runs/JDK versions
+- confusing insertion order (`LinkedHashSet`) with sorted order (`TreeSet` / `ConcurrentSkipListSet`)
+- forgetting that `TreeSet` uniqueness is based on comparison, not only `equals()`
 
 ---
 
 # Comparison Table — All `Set` Implementations
 
-| Feature                  | `HashSet`            | `LinkedHashSet`      | `TreeSet`            | `EnumSet`                 | `CopyOnWriteArraySet`     |
-|--------------------------|----------------------|----------------------|----------------------|---------------------------|---------------------------|
-| Internal structure       | Hash table           | Hash table + linked list | Red-black tree       | Bit vector               | Resizable array            |
-| Ordering                 | No guaranteed        | Insertion order      | Sorted               | N/A (enum order)          | Insertion order            |
-| Thread-safe              | No                   | No                   | No                   | No                        | Yes                        |
-| `add` complexity         | O(1) avg             | O(1) avg             | O(log n)             | O(1)                      | O(n)                       |
-| `contains` complexity    | O(1) avg             | O(1) avg             | O(log n)             | O(1)                      | O(n), lock-free            |
-| `null` support           | 1 allowed            | 1 allowed            | Not allowed          | Not allowed               | Not allowed                |
-| Iterator behavior        | Fail-fast            | Fail-fast            | Fail-fast            | Fail-fast                 | Snapshot (weakly consistent) |
-| Recommended use          | General purpose      | Order + speed        | Sorted data          | Enum values only          | Read-heavy concurrent      |
+| Feature                  | `HashSet`            | `LinkedHashSet`      | `TreeSet`            | `EnumSet`                 | `CopyOnWriteArraySet`        | `ConcurrentSkipListSet` |
+|--------------------------|----------------------|----------------------|----------------------|---------------------------|------------------------------|-------------------------|
+| Internal structure       | Hash table           | Hash table + linked list | Red-black tree       | Bit vector               | Resizable array              | Skip list               |
+| Ordering                 | No guaranteed        | Insertion order      | Sorted               | Enum declaration order    | Insertion order / snapshot   | Sorted                  |
+| Thread-safe              | No                   | No                   | No                   | No                        | Yes                          | Yes                     |
+| `add` complexity         | O(1) avg             | O(1) avg             | O(log n)             | O(1)                      | O(n)                         | O(log n) avg           |
+| `contains` complexity    | O(1) avg             | O(1) avg             | O(log n)             | O(1)                      | O(n), lock-free              | O(log n) avg           |
+| `null` support           | 1 allowed            | 1 allowed            | Not allowed          | Not allowed               | 1 allowed                    | Not allowed            |
+| Iterator behavior        | Fail-fast            | Fail-fast            | Fail-fast            | Fail-fast                 | Snapshot / weakly consistent | Weakly consistent      |
+| Recommended use          | General purpose      | Order + speed        | Sorted data          | Enum values only          | Read-heavy concurrent        | Concurrent sorted data |
 
 ---
 
@@ -622,6 +830,7 @@ For write-heavy scenarios, use `Collections.synchronizedSet()` or manually synch
 - **Null handling**: HashSet/LinkedHashSet allow 1 null; TreeSet/EnumSet do not
 - **EnumSet**: Mention if they're asking about enum workloads — huge performance win
 - **CopyOnWriteArraySet**: Mention for listener/observer patterns in concurrent code
+- **Concurrent sorted set**: Mention `ConcurrentSkipListSet` when they ask for sorted + thread-safe
 - **Common trap**: Confusing order preservation (LinkedHashSet) with sorting (TreeSet)
 
 ---
@@ -639,4 +848,5 @@ Relevant demo files (to be added):
 - `src/main/java/com/learning/concepts/collections/set/LinkedHashSetDemo.java`
 - `src/main/java/com/learning/concepts/collections/set/EnumSetDemo.java`
 - `src/main/java/com/learning/concepts/collections/set/CopyOnWriteArraySetDemo.java`
+- `src/main/java/com/learning/concepts/collections/set/ConcurrentSkipListSetDemo.java`
 

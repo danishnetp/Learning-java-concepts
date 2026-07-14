@@ -94,8 +94,64 @@ Examples:
 
 **A:**
 
-- `map()` transforms each input element into exactly one output element.
-- `flatMap()` transforms each input element into zero, one, or many output elements and flattens them into a single stream.
+- `map()` transforms each input element into **one result value**.
+- `flatMap()` transforms each input element into a **stream (or collection-like sequence)** and then flattens all of those inner streams into one final stream.
+
+Simple intuition:
+
+- `map()` = **one-to-one transformation**
+- `flatMap()` = **one-to-many transformation + flattening**
+
+Output shape difference:
+
+- with `map()`, structure usually stays nested if you return collections/streams
+- with `flatMap()`, nesting is removed
+
+Example:
+
+```java
+List<List<String>> names = Arrays.asList(
+	Arrays.asList("A", "B"),
+	Arrays.asList("C", "D")
+);
+
+List<Integer> sizes = names.stream()
+	.map(List::size)
+	.collect(Collectors.toList());
+// [2, 2]
+
+List<String> flat = names.stream()
+	.flatMap(List::stream)
+	.collect(Collectors.toList());
+// [A, B, C, D]
+```
+
+Another way to understand it:
+
+- `map(x -> f(x))` gives `Stream<R>`
+- `flatMap(x -> Stream<R>)` also gives `Stream<R>`, but by flattening nested streams
+
+If you use `map()` with nested lists, you keep nesting:
+
+```java
+Stream<Stream<String>> nested = names.stream().map(List::stream);
+```
+
+If you use `flatMap()`, you remove nesting:
+
+```java
+Stream<String> single = names.stream().flatMap(List::stream);
+```
+
+Typical interview use cases:
+
+- `map()` → convert objects (`User -> name`, `String -> length`, `Employee -> salary`)
+- `flatMap()` → flatten nested data (`List<List<T>>`, `orders -> items`, `customers -> phoneNumbers`)
+
+Common interview trap:
+
+- use `map()` when you want transformed values
+- use `flatMap()` when each element may produce multiple results and you want one combined stream
 
 Example idea:
 
@@ -106,13 +162,117 @@ Example idea:
 
 ## Q10: What does `filter()` do?
 
-**A:** `filter(Predicate)` keeps only the elements that satisfy the given condition.
+**A:** `filter(Predicate)` keeps only the elements that satisfy the given boolean condition.
+
+It is an **intermediate operation**, so:
+
+- it returns another stream
+- it is lazy
+- it does not run until a terminal operation is called
+
+How it works:
+
+- each element is passed to the predicate
+- if predicate returns `true`, the element stays in the stream
+- if predicate returns `false`, the element is removed from the stream pipeline
+
+Example:
+
+```java
+List<Integer> nums = Arrays.asList(1, 2, 3, 4, 5, 6);
+
+List<Integer> evens = nums.stream()
+	.filter(n -> n % 2 == 0)
+	.collect(Collectors.toList());
+
+// [2, 4, 6]
+```
+
+Another example:
+
+```java
+List<String> names = Arrays.asList("Alice", "", "Bob", " ", "Charlie");
+
+List<String> valid = names.stream()
+	.filter(s -> s != null)
+	.filter(s -> !s.isBlank())
+	.collect(Collectors.toList());
+
+// [Alice, Bob, Charlie]
+```
+
+Common use cases:
+
+- remove null values
+- keep only matching records
+- select active users / valid orders / high-value transactions
+- combine with `map()` and `collect()` in pipelines
+
+Interview points:
+
+- `filter()` does not modify the source collection
+- multiple `filter()` calls can be chained
+- it is stateless if the predicate depends only on the current element
+- avoid side effects inside the predicate, especially in parallel streams
+
+Typical pattern:
+
+- `filter()` -> keep wanted elements
+- `map()` -> transform them
+- `collect()` -> gather result
 
 ---
 
 ## Q11: What does `peek()` do, and when should it be used?
 
-**A:** `peek()` performs an action on each element while passing it through the stream unchanged. It is mainly used for debugging, logging, or tracing pipeline behavior.
+**A:** `peek()` performs an action on each element while passing that element through the stream unchanged.
+
+It is an **intermediate operation**, so:
+
+- it returns another stream
+- it is lazy
+- it runs only when a terminal operation triggers the pipeline
+
+What `peek()` is good for:
+
+- debugging stream pipelines
+- logging intermediate values
+- tracing how elements move through `filter()`, `map()`, `sorted()` and other operations
+
+Example:
+
+```java
+List<String> result = names.stream()
+	.peek(x -> System.out.println("before filter: " + x))
+	.filter(s -> s.length() > 3)
+	.peek(x -> System.out.println("after filter: " + x))
+	.map(String::toUpperCase)
+	.collect(Collectors.toList());
+```
+
+This helps observe pipeline behavior step by step.
+
+Important interview points:
+
+- `peek()` does **not** transform elements; `map()` does
+- `peek()` does **not** consume the stream; terminal operations like `collect()` or `forEach()` do
+- if there is no terminal operation, `peek()` does not run
+
+Common interview trap:
+
+- people misuse `peek()` for business side effects such as updating shared state, saving to DB, or mutating external collections
+
+That is risky because:
+
+- stream execution may be lazy
+- parallel streams may execute actions on different threads
+- ordering may not be what you expect
+
+So the rule of thumb is:
+
+- use `peek()` for debugging / tracing
+- use `map()` for transformation
+- use terminal operations for final side effects when truly needed
 
 It should not be used for important business side effects.
 
@@ -122,26 +282,206 @@ It should not be used for important business side effects.
 
 **A:**
 
-- `forEach()` may not preserve encounter order in parallel streams.
-- `forEachOrdered()` preserves order but may reduce parallel performance.
+- `forEach()` performs an action for each element, but in **parallel streams** it may not preserve encounter order.
+- `forEachOrdered()` also performs an action for each element, but it preserves **encounter order** when the stream has one.
+
+Important detail:
+
+- on a **sequential stream**, both usually appear to behave the same
+- the real difference becomes visible on a **parallel stream**
+
+Example:
+
+```java
+List<Integer> nums = Arrays.asList(1, 2, 3, 4, 5);
+
+nums.parallelStream().forEach(System.out::print);
+// possible output: 35214
+
+nums.parallelStream().forEachOrdered(System.out::print);
+// output: 12345
+```
+
+Why this happens:
+
+- `forEach()` prioritizes throughput and allows threads to process elements independently
+- `forEachOrdered()` adds ordering coordination, so results follow encounter order
+
+Performance implication:
+
+- `forEach()` is often faster in parallel pipelines because it avoids ordering constraints
+- `forEachOrdered()` may reduce parallel efficiency because threads must coordinate to preserve order
+
+Interview points:
+
+- if the source has no meaningful encounter order (for example some unordered sources), `forEachOrdered()` may not provide extra value
+- neither method transforms data; both are terminal operations with side effects
+- avoid relying on side effects in parallel streams unless thread-safety is guaranteed
+
+Rule of thumb:
+
+- use `forEach()` when order does not matter
+- use `forEachOrdered()` when deterministic encounter order matters
 
 ---
 
 ## Q13: What is `reduce()` in Stream API?
 
-**A:** `reduce()` combines stream elements into a single result.
+**A:** `reduce()` combines stream elements into a single result by repeatedly applying a combining function.
 
-Examples:
+It is a **terminal operation** and is commonly used when you want to collapse many values into one value.
+
+Typical examples:
 
 - sum of numbers
-- maximum value
+- maximum or minimum value
 - concatenating strings
+- multiplying values
+- building a combined summary result
+
+Simple intuition:
+
+- stream elements come one by one
+- `reduce()` keeps merging them into one accumulated result
+
+For example:
+
+```text
+[1, 2, 3, 4]
+=> (((1 + 2) + 3) + 4)
+=> 10
+```
 
 Common forms:
 
 - `reduce(BinaryOperator)`
 - `reduce(identity, BinaryOperator)`
 - `reduce(identity, accumulator, combiner)`
+
+### 1) `reduce(BinaryOperator)`
+
+Used when there is **no explicit identity value**.
+
+It returns `Optional<T>` because the stream may be empty.
+
+Example:
+
+```java
+Optional<Integer> sum = Stream.of(1, 2, 3, 4)
+	.reduce(Integer::sum);
+```
+
+Why `Optional`?
+
+- if stream has elements, result exists
+- if stream is empty, there is no natural result
+
+### 2) `reduce(identity, BinaryOperator)`
+
+Used when you have a starting value called **identity**.
+
+Example:
+
+```java
+int sum = Stream.of(1, 2, 3, 4)
+	.reduce(0, Integer::sum);
+```
+
+Here:
+
+- identity = `0`
+- accumulator = `Integer::sum`
+
+This means:
+
+```text
+(((0 + 1) + 2) + 3) + 4 = 10
+```
+
+### 3) `reduce(identity, accumulator, combiner)`
+
+This form is mainly useful for **parallel streams**.
+
+Example:
+
+```java
+int sum = Stream.of(1, 2, 3, 4)
+	.parallel()
+	.reduce(0, Integer::sum, Integer::sum);
+```
+
+Meaning:
+
+- `identity` = starting value for each partition
+- `accumulator` = how to add one element into partial result
+- `combiner` = how to merge partial results from different threads
+
+### Important interview concepts
+
+#### Identity
+
+The identity should be a neutral element.
+
+Examples:
+
+- for sum → `0`
+- for multiplication → `1`
+- for string concatenation → `""`
+
+If identity is wrong, result becomes incorrect.
+
+#### Associativity
+
+The reduction function should usually be **associative**, especially for parallel streams.
+
+Good example:
+
+```java
+Integer::sum
+```
+
+Risky example:
+
+```java
+(a, b) -> a - b
+```
+
+Subtraction is not associative, so parallel results can be surprising.
+
+### Examples
+
+#### Sum
+
+```java
+int sum = Stream.of(1, 2, 3, 4).reduce(0, Integer::sum);
+```
+
+#### Maximum
+
+```java
+Optional<Integer> max = Stream.of(5, 2, 9, 1)
+	.reduce(Integer::max);
+```
+
+#### String concatenation
+
+```java
+String joined = Stream.of("A", "B", "C")
+	.reduce("", String::concat);
+```
+
+### Common interview traps
+
+- confusing `reduce()` with `collect()`
+- forgetting `reduce(BinaryOperator)` returns `Optional`
+- using a wrong identity value
+- using non-associative logic in parallel reduction
+- using `reduce()` for mutable containers like `ArrayList` when `collect()` is more appropriate
+
+Rule of thumb:
+
+- use `reduce()` for immutable single-value reduction
+- use `collect()` for mutable accumulation into collections, maps, or grouped results
 
 ---
 
@@ -272,12 +612,58 @@ Examples:
 
 ## Q24: What is a parallel stream?
 
-**A:** A parallel stream processes elements using multiple threads, usually through the common fork-join pool.
+**A:** A parallel stream processes stream elements using multiple threads so work can be done concurrently.
 
 You can create it using:
 
 - `collection.parallelStream()`
 - `stream.parallel()`
+
+How it works internally (important interview point):
+
+- Java Stream API uses the **Fork/Join framework**
+- by default it runs tasks on `ForkJoinPool.commonPool()`
+- source data is split into chunks using `Spliterator`
+- chunks are processed in parallel by worker threads
+- partial results are combined in a final merge step
+
+Conceptual flow:
+
+```text
+Source -> split (Spliterator) -> parallel tasks (ForkJoin workers) -> combine -> terminal result
+```
+
+Example:
+
+```java
+int sum = IntStream.rangeClosed(1, 1_000_000)
+	.parallel()
+	.sum();
+```
+
+In this case:
+
+- range is partitioned into subranges
+- different worker threads sum subranges
+- framework combines partial sums into final result
+
+Key framework details interviewers ask:
+
+- default execution pool: `ForkJoinPool.commonPool`
+- parallelism is usually around CPU core count (configurable via JVM property)
+- work-stealing lets idle threads steal tasks from busy threads
+
+Important caveats:
+
+- parallel streams are best for CPU-bound, large, stateless operations
+- avoid shared mutable state and side effects
+- operations requiring strict order (`forEachOrdered`, `findFirst`) can reduce speedup
+- blocking I/O in parallel streams can hurt throughput of common pool threads
+
+Rule of thumb:
+
+- use sequential stream first
+- switch to parallel only after measuring real performance gains
 
 ---
 

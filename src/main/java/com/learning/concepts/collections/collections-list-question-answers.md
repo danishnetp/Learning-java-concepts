@@ -296,12 +296,12 @@ list.sort(Comparator.comparing(String::length)); // custom
 
 **A:**
 
-| Aspect            | `ArrayList`                        | Array                          |
-|-------------------|------------------------------------|--------------------------------|
-| Size              | Dynamic                            | Fixed                          |
-| Type              | Generic (Object-based)             | Primitive or Object            |
-| Methods           | Rich API (`add`, `remove`, etc.)   | Limited (`length` only)        |
-| Performance       | Slight overhead from boxing/bounds | Slightly faster for primitives |
+| Aspect            | `ArrayList`                         | Array                          |
+|-------------------|-------------------------------------|--------------------------------|
+| Size              | Dynamic                             | Fixed                          |
+| Type              | Generic (Object-based)              | Primitive or Object            |
+| Methods           | Rich API (`add`, `remove`, etc.)    | Limited (`length` only)        |
+| Performance       | Slight overhead from boxing/bounds  | Slightly faster for primitives |
 
 ---
 

@@ -732,30 +732,129 @@ Sequential is usually easier to predict; parallel may improve performance for th
 
 ## Q30: What is encounter order in streams?
 
-**A:** Encounter order is the natural order in which elements are seen from the source.
+**A:** Encounter order is the order in which a stream source presents elements to the pipeline.
 
-Examples:
+It comes from the source (or from earlier operations) and affects behavior of many stream operations.
 
-- `List` usually has encounter order
-- `HashSet` usually does not guarantee stable order
+Typical source behavior:
 
-Operations like `forEachOrdered()` and `findFirst()` are affected by encounter order.
+- `List` -> encounter order follows index order
+- array stream -> encounter order follows array index
+- `LinkedHashSet` -> encounter order follows insertion order
+- `TreeSet` -> encounter order follows sorted order
+- `HashSet` -> no guaranteed stable encounter order
+
+Why it matters:
+
+- `findFirst()` depends on encounter order
+- `forEachOrdered()` respects encounter order
+- `forEach()` may ignore encounter order in parallel streams
+- `limit()` / `skip()` behave relative to encounter order
+
+Operation impact on order:
+
+- `sorted()` defines a new deterministic encounter order
+- `unordered()` explicitly drops ordering constraint
+- `distinct()` preserves encounter order for ordered streams, but may be freer on unordered streams
+
+Example:
+
+```java
+List<Integer> nums = Arrays.asList(5, 1, 4, 2, 3);
+
+int first = nums.stream().findFirst().orElse(-1); // 5
+
+List<Integer> top2 = nums.stream()
+	.sorted()
+	.limit(2)
+	.collect(Collectors.toList());
+// [1, 2]
+```
+
+Parallel stream note:
+
+- preserving encounter order in parallel pipelines (for example `forEachOrdered`, ordered `limit`) may reduce performance due to coordination
+- if order does not matter, `unordered()` can improve throughput in some pipelines
+
+Interview rule of thumb:
+
+- mention encounter order whenever discussing `findFirst`, `forEachOrdered`, `limit`, and parallel streams
+- if source is unordered and result order is not required, allow unordered processing for better performance
 
 ---
 
 ## Q31: What is a stateless operation in streams?
 
-**A:** A stateless operation depends only on the current element, not on previously processed elements.
+**A:** A stateless operation depends only on the current element and does not need information about previously seen elements.
 
-Examples:
+Because of that:
 
-- `map()`
-- `filter()`
+- it can process each element independently
+- it works well with pipelining and parallel execution
+- it usually does not need to buffer all elements
 
-Stateful operations include:
+Why `map()` is stateless:
 
-- `sorted()`
-- `distinct()`
+- `map(x -> f(x))` transforms one element at a time
+- output for one element does not depend on other elements
+
+Example:
+
+```java
+List<Integer> out = Stream.of(1, 2, 3)
+	.map(n -> n * 2)
+	.collect(Collectors.toList());
+// [2, 4, 6]
+```
+
+Why `filter()` is stateless:
+
+- predicate is evaluated per element
+- keep/drop decision depends only on that element
+
+Example:
+
+```java
+List<Integer> evens = Stream.of(1, 2, 3, 4, 5, 6)
+	.filter(n -> n % 2 == 0)
+	.collect(Collectors.toList());
+// [2, 4, 6]
+```
+
+Stateful operations include `sorted()` and `distinct()`.
+
+Why `sorted()` is stateful:
+
+- to emit sorted output, it must see enough (usually all) elements first
+- it buffers elements before producing final ordered results
+
+Example:
+
+```java
+List<Integer> sorted = Stream.of(4, 1, 3, 2)
+	.sorted()
+	.collect(Collectors.toList());
+// [1, 2, 3, 4]
+```
+
+Why `distinct()` is stateful:
+
+- it must remember already-seen elements to remove duplicates
+- it keeps state (typically a set of seen values)
+
+Example:
+
+```java
+List<Integer> unique = Stream.of(1, 2, 1, 3, 2, 4)
+	.distinct()
+	.collect(Collectors.toList());
+// [1, 2, 3, 4]
+```
+
+Interview summary:
+
+- stateless (`map`, `filter`) -> per-element independent processing
+- stateful (`sorted`, `distinct`) -> requires remembering or buffering elements
 
 ---
 

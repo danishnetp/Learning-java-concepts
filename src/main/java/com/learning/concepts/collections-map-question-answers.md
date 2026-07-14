@@ -718,9 +718,57 @@ This design improves scalability during resizing.
 
 ## Q12: Is `size()` always exact in `ConcurrentHashMap`?
 
-**A:** Under heavy concurrent updates, computing an exact size is more expensive.
+**A:** Under heavy concurrent updates, computing an exact size is more expensive than in non-concurrent maps.
 
-In practice, `size()` may need retries and aggregation, so interview discussions often describe it as potentially transient under active mutation.
+Why exact size is hard:
+
+- in a single-threaded map, size is just a counter incremented on each `put`
+- in `ConcurrentHashMap`, multiple threads update different bins simultaneously
+- a global size counter would become a bottleneck (all threads contend for one lock)
+
+How `ConcurrentHashMap` handles this:
+
+- uses **striped counters**: an array of counters (`CounterCell[]`)
+- each thread updates a different counter cell (reduces contention)
+- `size()` must aggregate all cells to get the total
+
+Cost of computing exact size:
+
+1. read all counter cells (multiple volatile reads)
+2. sum them up (loop over all cells)
+3. if a write happens during aggregation, result may need retry
+
+Potential issues:
+
+- result is **approximate** under active concurrent mutations
+- multiple calls to `size()` in hot loops can hurt performance
+- value may be transiently stale (reflects state at or before the call)
+
+Interview caveat:
+
+- `size()` is not a **real-time snapshot**; it may miss concurrent updates
+- for decision-making that requires exact count, take a snapshot upfront or use external coordination
+
+When to avoid `size()` in hot paths:
+
+```java
+// Bad: size() called repeatedly in loop (expensive aggregation each time)
+while (size() < 1_000) {
+    // add more elements
+}
+
+// Better: cache the size or use a dedicated counter
+int needed = 1_000 - map.size();
+for (int i = 0; i < needed; i++) {
+    map.put(...);
+}
+```
+
+Alternatives when you need a count:
+
+- `mappingCount()` — similar to `size()` but may be faster (returns long)
+- maintain a separate `AtomicInteger` / `LongAdder` counter alongside the map
+- design your code to avoid needing exact size during concurrent updates
 
 ---
 
@@ -739,15 +787,72 @@ Typical examples:
 
 ## Q14: When should you avoid heavy work inside `compute()` or `merge()`?
 
-**A:** Because those operations may hold per-key/bin update coordination while executing the mapping function.
+**A:** Because `compute()` and `merge()` **hold a lock on the bin** while executing the mapping function.
 
-So avoid:
+How it works:
 
-- blocking I/O
-- slow database calls
-- long CPU-heavy logic
+- `compute(key, function)` acquires a lock on the bin containing that key
+- executes the mapping function with the lock held
+- releases the lock only after the function completes
+- this ensures atomicity of the read-modify-write operation
 
-inside those lambdas in hot concurrent paths.
+What this means for performance:
+
+- while the lock is held, **other threads cannot modify that bin**
+- other threads cannot even read from that bin in some cases
+- if the mapping function is slow, lock contention increases dramatically
+
+Common mistakes to avoid:
+
+```java
+// BAD: Database call inside compute (blocks bin during I/O)
+map.compute(key, (k, v) -> {
+    User user = database.getUser(k); // slow I/O blocks bin
+    return user;
+});
+
+// BAD: Blocking I/O inside merge
+map.merge(key, value, (old, new) -> {
+    Thread.sleep(1000); // blocks bin for 1 second!
+    return new;
+});
+
+// BAD: Long CPU-heavy logic
+map.compute(key, (k, v) -> {
+    for (int i = 0; i < 1_000_000; i++) {
+        expensiveCalculation();
+    }
+    return v + 1;
+});
+```
+
+Better alternatives:
+
+```java
+// GOOD: Fetch data outside the map, then do atomic update
+User user = database.getUser(key);
+map.compute(key, (k, v) -> user);
+
+// GOOD: Do heavy lifting outside, use merge for atomic swap
+BigResult result = expensiveCalculation();
+map.merge(key, result, (old, new) -> new);
+
+// GOOD: For simple operations, compute/merge are fine
+map.compute("counter", (k, v) -> v == null ? 1 : v + 1);
+```
+
+Performance impact:
+
+- if mapping function takes 100ms and bin lock is held for 100ms
+- all other threads trying to access that bin wait 100ms
+- throughput drops significantly under contention
+- in read-heavy scenarios, many threads may be blocked
+
+Interview tip:
+
+- keep mapping functions short and fast (microseconds, not milliseconds)
+- rule of thumb: if you wouldn't do it in a synchronized block, don't do it in compute/merge
+- for expensive operations, do the work outside the map, then update atomically
 
 ---
 

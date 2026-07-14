@@ -456,9 +456,49 @@ Worst case can degrade to O(n), though treeified buckets improve heavy-collision
 
 **A:** Yes, generally.
 
-If the map is structurally modified after iterator creation, the iterator may throw `ConcurrentModificationException`.
+`HashMap` iterators (`keySet()`, `values()`, `entrySet()`) are designed to be fail-fast.
 
-It is called fail-fast because it detects unsafe concurrent structural modification quickly, but it is not a hard thread-safety guarantee.
+What this means:
+
+- if the map is structurally modified after iterator creation, iterator methods like `next()` may throw `ConcurrentModificationException`
+- this detection is usually based on internal modification count checks
+
+What is considered structural modification:
+
+- adding a new key (`put` with new key)
+- removing an entry (`remove`, `clear`)
+- operations that change map size/structure
+
+What is usually not structural:
+
+- updating value for an existing key (`put` on same existing key)
+
+Important interview caveat:
+
+- fail-fast is **best effort**, not a synchronization guarantee
+- you must not rely on `ConcurrentModificationException` for program correctness
+
+Unsafe pattern (can fail-fast):
+
+```java
+for (String k : map.keySet()) {
+    map.remove(k); // may throw ConcurrentModificationException
+}
+```
+
+Safe pattern during iteration:
+
+```java
+Iterator<Map.Entry<String, Integer>> it = map.entrySet().iterator();
+while (it.hasNext()) {
+    Map.Entry<String, Integer> e = it.next();
+    if (e.getValue() == 0) {
+        it.remove(); // safe iterator-driven remove
+    }
+}
+```
+
+For real concurrent iteration + mutation, prefer `ConcurrentHashMap` (weakly consistent iterators) instead of `HashMap`.
 
 ---
 
@@ -466,12 +506,12 @@ It is called fail-fast because it detects unsafe concurrent structural modificat
 
 **A:**
 
-| Aspect            | `HashMap`                        | `Hashtable` |
-|-------------------|----------------------------------|-------------|
-| Thread safety     | No                               | Yes         |
-| Performance       | Better in single-threaded code   | More lock contention |
-| `null` key/value  | Allows one `null` key and null values | Does not allow `null` |
-| API age           | Modern, preferred                | Legacy      |
+| Aspect            | `HashMap`                               | `Hashtable`           |
+|-------------------|-----------------------------------------|-----------------------|
+| Thread safety     | No                                      | Yes                   |
+| Performance       | Better in single-threaded code          | More lock contention  |
+| `null` key/value  | Allows one `null` key and null values   | Does not allow `null` |
+| API age           | Modern, preferred                       | Legacy                |
 
 ---
 
@@ -497,6 +537,14 @@ In performance-sensitive code, pre-sizing can noticeably reduce overhead.
 - ignoring `equals()` and `hashCode()` contract
 - using mutable objects as keys
 - assuming O(1) is guaranteed in all cases
+- forgetting that `HashMap` allows one `null` key and multiple `null` values
+- confusing `HashMap` with `Hashtable` or `ConcurrentHashMap`
+- assuming fail-fast iterator is a thread-safety feature
+- doing `get()` then `put()` patterns in concurrent code instead of atomic alternatives
+- underestimating resize/rehash cost and not pre-sizing when entry count is known
+- assuming poor hash distribution does not affect performance
+- assuming iteration order is stable across runs/JDK versions
+- using `keySet()` + `get()` repeatedly instead of `entrySet()` when both key and value are needed
 
 ---
 

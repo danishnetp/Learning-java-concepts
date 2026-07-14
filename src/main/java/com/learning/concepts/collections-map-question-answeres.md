@@ -506,12 +506,12 @@ For real concurrent iteration + mutation, prefer `ConcurrentHashMap` (weakly con
 
 **A:**
 
-| Aspect            | `HashMap`                               | `Hashtable`           |
-|-------------------|-----------------------------------------|-----------------------|
-| Thread safety     | No                                      | Yes                   |
-| Performance       | Better in single-threaded code          | More lock contention  |
-| `null` key/value  | Allows one `null` key and null values   | Does not allow `null` |
-| API age           | Modern, preferred                       | Legacy                |
+| Aspect              | `HashMap`                                 | `Hashtable`               |
+|---------------------|-------------------------------------------|---------------------------|
+| Thread safety       | No                                        | Yes                       |
+| Performance         | Better in single-threaded code            | More lock contention      |
+| `null` key/value    | Allows one `null` key and null values     | Does not allow `null`     |
+| API age             | Modern, preferred                         | Legacy                    |
 
 ---
 
@@ -540,7 +540,7 @@ In performance-sensitive code, pre-sizing can noticeably reduce overhead.
 - forgetting that `HashMap` allows one `null` key and multiple `null` values
 - confusing `HashMap` with `Hashtable` or `ConcurrentHashMap`
 - assuming fail-fast iterator is a thread-safety feature
-- doing `get()` then `put()` patterns in concurrent code instead of atomic alternatives
+- doing `get()` then `put()` in concurrent code (non-atomic read-modify-write, can cause lost updates); use `compute()`, `merge()`, or `putIfAbsent()`/`computeIfAbsent()` instead
 - underestimating resize/rehash cost and not pre-sizing when entry count is known
 - assuming poor hash distribution does not affect performance
 - assuming iteration order is stable across runs/JDK versions
@@ -614,14 +614,14 @@ That makes concurrent logic safer and simpler.
 
 **A:**
 
-| Aspect             | `ConcurrentHashMap`                  | `HashMap`                                        |
-|--------------------|--------------------------------------|--------------------------------------------------|
-| Thread safety      | Yes, designed for concurrent use     | No                                               |
-| Locking model      | Fine-grained/bin-level locking + CAS | No internal synchronization                      |
-| Read behavior      | Mostly lock-free                     | Not safe under concurrent writes                 |
-| `null` key/value   | Not allowed                          | 1 `null` key, multiple `null` values allowed     |
-| Iterator behavior  | Weakly consistent, not fail-fast     | Fail-fast                                        |
-| Typical use case   | Multi-threaded shared maps           | Single-threaded or externally synchronized usage |
+| Aspect               | `ConcurrentHashMap`                    | `HashMap`                                           |
+|----------------------|----------------------------------------|-----------------------------------------------------|
+| Thread safety        | Yes, designed for concurrent use       | No                                                  |
+| Locking model        | Fine-grained/bin-level locking + CAS   | No internal synchronization                         |
+| Read behavior        | Mostly lock-free                       | Not safe under concurrent writes                    |
+| `null` key/value     | Not allowed                            | 1 `null` key, multiple `null` values allowed        |
+| Iterator behavior    | Weakly consistent, not fail-fast       | Fail-fast                                           |
+| Typical use case     | Multi-threaded shared maps             | Single-threaded or externally synchronized usage    |
 
 ---
 
@@ -639,9 +639,36 @@ They are **weakly consistent**:
 
 ## Q8: Is `get()` in `ConcurrentHashMap` locked?
 
-**A:** Usually no. Most reads are lock-free and rely on volatile visibility and carefully designed internal state transitions.
+**A:** Usually no. Most `get()` operations are lock-free.
 
-This is one major reason it performs better than coarse-grained synchronization for read-heavy workloads.
+Why `get()` avoids locking:
+
+- reads the `table` reference (volatile field) to see current bucket array
+- reads bucket head node using volatile semantics
+- traverses the linked list or tree in that bucket
+- no synchronization needed because visibility is guaranteed by volatile semantics
+
+How this differs from `put()` / `remove()`:
+
+- writes to a bucket **require bin-level synchronization** (lock on bin head)
+- reads never need to acquire locks
+- other threads can write to different bins while a read is in progress
+
+What happens during concurrent resize:
+
+- if a `get()` encounters a `ForwardingNode` (marker for resize in progress), it follows the link to the new table
+- `get()` still remains lock-free; it just redirects to the new table atomically
+
+Why this matters for performance:
+
+- in read-heavy workloads (common case), threads do not contend for locks
+- many readers can proceed in parallel while one writer is updating a single bin
+- volatile reads have minimal overhead compared to actual lock acquisition/release
+
+Interview caveat:
+
+- lock-free does not mean wait-free (threads may need to retry reads during resize transitions)
+- but contention is still very low compared to global synchronization
 
 ---
 

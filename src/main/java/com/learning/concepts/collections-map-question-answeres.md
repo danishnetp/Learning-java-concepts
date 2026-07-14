@@ -346,13 +346,53 @@ Default load factor is `0.75`, which is a practical balance between memory usage
 
 ## Q7: What happens during resize or rehash in `HashMap`?
 
-**A:** When size crosses the threshold:
+**A:** Resize is triggered when map size crosses the threshold:
 
-- capacity usually doubles
-- entries are redistributed into new buckets
-- lookup performance is preserved by keeping bucket chains smaller on average
+```text
+threshold = capacity * loadFactor
+```
 
-Resize is costly, so interviewers may ask about choosing a good initial capacity.
+With defaults:
+
+- initial capacity: 16
+- load factor: 0.75
+- first resize threshold: 12
+
+So when the number of stored entries becomes greater than threshold, `HashMap` grows.
+
+What happens during resize:
+
+1. capacity usually doubles (for example 16 -> 32 -> 64)
+2. new threshold is recomputed (`newCapacity * loadFactor`)
+3. existing buckets are transferred into the new table
+4. entries either stay at same index or move to `oldIndex + oldCapacity` (JDK 8 split behavior)
+
+Why this helps:
+
+- average bucket length decreases
+- collision probability drops
+- average `get`/`put` time stays close to O(1)
+
+Important interview points:
+
+- resize is expensive (O(n) transfer) and can cause temporary latency spikes
+- frequent resize in hot code paths hurts throughput
+- good initial capacity reduces repeated rehashing
+- heavy collisions can still occur if key `hashCode()` distribution is poor
+
+How to pre-size in practice:
+
+- if expected entries are known, choose capacity >= `expectedSize / loadFactor`
+- a common rule of thumb: `new HashMap<>((int)(expectedSize / 0.75f) + 1)`
+
+Example:
+
+- expected entries = 1,000
+- recommended capacity before power-of-two normalization ~ 1334
+
+`HashMap` internally rounds capacity to the next power of two.
+
+Resize is costly, so interviewers often ask both **when** it happens and **how** you avoid excessive rehashing.
 
 ---
 

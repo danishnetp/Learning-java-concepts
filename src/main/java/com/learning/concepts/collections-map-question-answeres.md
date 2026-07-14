@@ -154,16 +154,52 @@ These methods reduce boilerplate and are often safer than manual read-modify-wri
 
 ## Q11: When should you use `computeIfAbsent()`?
 
-**A:** Use it when a value should be created lazily only if a key is missing.
+**A:** Use `computeIfAbsent()` when you want to create and insert a value **only if the key is currently not mapped**.
 
-Common interview example:
+It is most useful for:
+
+- lazy initialization of expensive objects
+- grouping values in maps of collections
+- frequency/counter maps
+- cache-style population logic
+
+Without `computeIfAbsent()`, code is usually verbose and error-prone:
+
+```java
+List<String> users = groups.get("admin");
+if (users == null) {
+    users = new ArrayList<>();
+    groups.put("admin", users);
+}
+users.add("Alice");
+```
+
+With `computeIfAbsent()`:
 
 ```java
 Map<String, List<String>> groups = new HashMap<>();
 groups.computeIfAbsent("admin", k -> new ArrayList<>()).add("Alice");
+groups.computeIfAbsent("admin", k -> new ArrayList<>()).add("Bob");
 ```
 
-This avoids manual null checks.
+Result:
+
+```text
+{admin=[Alice, Bob]}
+```
+
+Important behavior points interviewers ask:
+
+- if key already has a non-null value, mapping function is not called
+- if key is absent (or mapped to `null`), mapping function is called
+- if mapping function returns `null`, no mapping is recorded
+- if mapping function throws exception, map remains unchanged for that key
+
+Concurrency note:
+
+- in `ConcurrentHashMap`, this method is atomic per key and preferred over manual `get()` then `put()`
+
+This avoids manual null checks and makes intent clearer.
 
 ---
 

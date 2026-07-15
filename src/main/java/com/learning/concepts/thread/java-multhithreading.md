@@ -493,3 +493,304 @@ Ordered collection APIs with explicit first/last operations and reversible views
 - `wait/notify` coordinate threads via monitors
 - atomic classes and concurrent collections are essential for safe concurrency
 - thread pools and virtual threads are the modern way to manage high concurrency
+
+---
+
+## 24) `synchronized` vs `ReentrantLock`
+
+**Q: What is the difference between `synchronized` and `ReentrantLock`?**
+
+**A:**
+
+- `synchronized` is simpler and JVM-managed
+- `ReentrantLock` provides advanced features:
+  - try-lock with timeout
+  - interruptible lock acquisition
+  - optional fairness policy
+  - multiple `Condition` variables
+
+Example:
+
+```java
+ReentrantLock lock = new ReentrantLock();
+lock.lock();
+try {
+	// critical section
+} finally {
+	lock.unlock();
+}
+```
+
+---
+
+## 25) Read-heavy locking
+
+**Q: When should we use `ReadWriteLock`?**
+
+**A:** Use `ReadWriteLock` when reads are frequent and writes are rare.
+
+- multiple readers can proceed concurrently
+- writers get exclusive access
+
+---
+
+**Q: What is `StampedLock` and when is it useful?**
+
+**A:** `StampedLock` supports read lock, write lock, and optimistic read.
+
+It can outperform `ReadWriteLock` in read-heavy scenarios but is more complex and not reentrant.
+
+---
+
+## 26) Coordination utilities
+
+**Q: `CountDownLatch` vs `CyclicBarrier`?**
+
+**A:**
+
+- `CountDownLatch`: one-time gate; waits until counter reaches zero
+- `CyclicBarrier`: reusable barrier; threads wait for each other repeatedly
+
+---
+
+**Q: What is `Semaphore` used for?**
+
+**A:** To limit concurrent access to a resource (for example, DB connections).
+
+Example:
+
+```java
+Semaphore sem = new Semaphore(10);
+sem.acquire();
+try {
+	// use limited resource
+} finally {
+	sem.release();
+}
+```
+
+---
+
+**Q: What is `Phaser`?**
+
+**A:** A flexible synchronization barrier for multi-phase workflows where parties can register/deregister dynamically.
+
+---
+
+**Q: What is `Exchanger`?**
+
+**A:** Utility to swap objects between two threads at a synchronization point.
+
+---
+
+## 27) ExecutorService and thread pools (production-focused)
+
+**Q: Why avoid creating raw threads in business code?**
+
+**A:** Raw threads are expensive and hard to manage at scale; pools provide bounded resources, queueing, and lifecycle control.
+
+---
+
+**Q: What are common `ExecutorService` factory options and use cases?**
+
+**A:**
+
+- fixed pool -> stable worker count
+- cached pool -> bursty short-lived tasks
+- scheduled pool -> periodic/delayed tasks
+- virtual-thread-per-task executor -> high-concurrency blocking I/O style
+
+---
+
+**Q: What thread-pool sizing rule is commonly used?**
+
+**A:**
+
+- CPU-bound: around number of cores
+- I/O-bound: can be higher; depends on wait time ratio
+
+Always validate with load tests and metrics.
+
+---
+
+**Q: Why is graceful shutdown important for executors?**
+
+**A:** Prevents task loss and resource leaks.
+
+Pattern:
+
+```java
+executor.shutdown();
+if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+	executor.shutdownNow();
+}
+```
+
+---
+
+## 28) Concurrent collections interview Q&A
+
+**Q: `Collections.synchronizedMap` vs `ConcurrentHashMap`?**
+
+**A:**
+
+- `synchronizedMap` uses coarse-grained synchronization
+- `ConcurrentHashMap` provides better concurrent throughput with finer-grained coordination
+
+---
+
+**Q: Why can `ConcurrentHashMap` iterators be safer in concurrent scenarios?**
+
+**A:** They are weakly consistent (do not fail-fast like standard collections).
+
+---
+
+**Q: `CopyOnWriteArrayList` when to use?**
+
+**A:** Read-heavy, write-rare workloads (e.g., listener lists). Writes are expensive due to full array copy.
+
+---
+
+## 29) Lock-free concepts and pitfalls
+
+**Q: What is ABA problem in CAS?**
+
+**A:** Value changes A -> B -> A between reads, CAS sees A and assumes no change.
+
+Mitigation: stamped/versioned references (`AtomicStampedReference`).
+
+---
+
+**Q: Is lock-free always faster?**
+
+**A:** Not always. Under heavy contention, retries/spinning can degrade performance.
+
+---
+
+## 30) Daemon threads and lifecycle
+
+**Q: What is a daemon thread?**
+
+**A:** Background thread that does not prevent JVM shutdown when only daemon threads remain.
+
+Use for housekeeping; avoid critical business tasks.
+
+---
+
+**Q: What is a shutdown hook?**
+
+**A:** JVM callback thread for cleanup during shutdown.
+
+```java
+Runtime.getRuntime().addShutdownHook(new Thread(() -> cleanup()));
+```
+
+---
+
+## 31) Visibility and ordering interview traps
+
+**Q: Why can double-checked locking be broken without `volatile`?**
+
+**A:** Reordering may publish partially constructed objects.
+
+Correct singleton pattern:
+
+```java
+private static volatile MySingleton instance;
+```
+
+---
+
+**Q: Is `final` relevant to thread safety?**
+
+**A:** Yes. Properly constructed objects with `final` fields have stronger initialization safety guarantees.
+
+---
+
+## 32) Virtual threads (Java 21) - current interview questions
+
+**Q: Platform thread vs virtual thread?**
+
+**A:**
+
+- platform thread maps to OS thread
+- virtual thread is lightweight JVM-managed thread
+
+Virtual threads enable very high concurrency for blocking tasks.
+
+---
+
+**Q: Are virtual threads always better?**
+
+**A:** No.
+
+- excellent for I/O-bound blocking workloads
+- CPU-bound work still limited by available cores
+
+---
+
+**Q: What is pinning in virtual threads and why is it important?**
+
+**A:** Certain blocking inside synchronized/native sections can pin carrier threads, reducing scalability.
+
+Interview tip: avoid long blocking operations while holding monitor locks.
+
+---
+
+**Q: Should we replace all executors with virtual threads immediately?**
+
+**A:** No. Migrate selectively, measure throughput/latency, and review libraries for compatibility.
+
+---
+
+## 33) Structured concurrency and scoped values (current topics)
+
+**Q: What is structured concurrency (high-level)?**
+
+**A:** It groups child tasks under a parent scope, simplifying cancellation, error propagation, and lifecycle management.
+
+---
+
+**Q: What are scoped values?**
+
+**A:** Scoped values are immutable, inheritable context values for structured concurrent code, safer than some `ThreadLocal` patterns.
+
+---
+
+## 34) Production troubleshooting questions
+
+**Q: What metrics do you check first in a multithreading production issue?**
+
+**A:**
+
+- thread count and state distribution
+- blocked/waiting time
+- queue lengths in executors
+- task rejection counts
+- CPU usage and context switching
+- GC pauses (if thread stalls correlate)
+
+---
+
+**Q: How do you quickly diagnose thread bottlenecks?**
+
+**A:** Capture multiple thread dumps 5-10 seconds apart and compare recurring blocked stacks / lock contention points.
+
+---
+
+**Q: Why are bounded queues important in thread pools?**
+
+**A:** Prevent unbounded memory growth and backpressure failures under load spikes.
+
+---
+
+## 35) Additional common interview mistakes
+
+- treating `volatile` as replacement for all locking
+- ignoring interruption handling in loops
+- using unbounded executor queues in high-load services
+- forgetting `finally` for lock release
+- holding locks during network/database calls
+- assuming virtual threads remove all concurrency design concerns
+
+

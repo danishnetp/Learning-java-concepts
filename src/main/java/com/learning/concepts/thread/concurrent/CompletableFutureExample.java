@@ -1,4 +1,4 @@
-package com.learning.concepts.concurrent;
+package com.learning.concepts.thread.concurrent;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;

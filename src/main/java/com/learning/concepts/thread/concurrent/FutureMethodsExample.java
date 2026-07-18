@@ -1,4 +1,4 @@
-package com.learning.concepts.concurrent;
+package com.learning.concepts.thread.concurrent;
 
 import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;

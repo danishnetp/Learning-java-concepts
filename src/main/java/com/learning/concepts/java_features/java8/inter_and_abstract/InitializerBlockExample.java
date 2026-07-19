@@ -1,4 +1,4 @@
-package com.learning.concepts.java_features.java8.demo.inter_and_abstract;
+package com.learning.concepts.java_features.java8.inter_and_abstract;
 
 /**
  * Explains initializer-block support in abstract classes.

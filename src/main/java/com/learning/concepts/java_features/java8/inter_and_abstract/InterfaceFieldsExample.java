@@ -1,4 +1,4 @@
-package com.learning.concepts.java_features.java8.demo.inter_and_abstract;
+package com.learning.concepts.java_features.java8.inter_and_abstract;
 
 /**
  * Demonstrates the field-model difference between interfaces and abstract classes.

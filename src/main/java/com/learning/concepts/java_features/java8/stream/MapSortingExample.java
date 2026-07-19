@@ -1,4 +1,4 @@
-package com.learning.concepts.java_features.java8.demo.stream;
+package com.learning.concepts.java_features.java8.stream;
 
 import java.util.Comparator;
 import java.util.LinkedHashMap;

@@ -1,4 +1,4 @@
-package com.learning.concepts.java_features.java8.demo.bank;
+package com.learning.concepts.java_features.java8.bank_demo_example;
 
 public class Bank {
     private final String customerName;

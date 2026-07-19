@@ -38,7 +38,7 @@ class Print {
             } else {
                 try {
                     wait();
-                } catch (InterruptedException _) {
+                } catch (InterruptedException ignored) {
                 }
             }
         }
@@ -53,7 +53,7 @@ class Print {
             } else {
                 try {
                     wait();
-                } catch (InterruptedException _) {
+                } catch (InterruptedException ignored ) {
                 }
             }
         }

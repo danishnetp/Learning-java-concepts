@@ -32,7 +32,7 @@ class ProducerAndConsumer {
                     notify();
                     wait();
                 }
-                int value = list.removeFirst();
+                int value = list.remove(0);
                 System.out.println("Consumer consumed : " + value);
                 notify();
                 Thread.sleep(1000);

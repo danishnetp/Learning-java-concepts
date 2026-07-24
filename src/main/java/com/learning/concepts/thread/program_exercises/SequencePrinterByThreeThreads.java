@@ -1,4 +1,4 @@
-package com.learning.concepts.thread.practices;
+package com.learning.concepts.thread.program_exercises;
 
 public class SequencePrinterByThreeThreads {
     private static final Object LOCK = new Object(); // Shared lock for synchronization

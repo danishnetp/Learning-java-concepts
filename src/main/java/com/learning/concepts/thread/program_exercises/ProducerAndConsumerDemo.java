@@ -1,4 +1,4 @@
-package com.learning.concepts.thread.practices;
+package com.learning.concepts.thread.program_exercises;
 
 import java.util.LinkedList;
 import java.util.List;

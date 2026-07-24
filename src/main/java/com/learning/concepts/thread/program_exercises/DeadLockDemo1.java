@@ -1,4 +1,4 @@
-package com.learning.concepts.thread.practices;
+package com.learning.concepts.thread.program_exercises;
 
 public class DeadLockDemo1 {
     private final Object lock1 = new Object();

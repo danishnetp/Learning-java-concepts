@@ -1,16 +1,16 @@
-package com.learning.concepts.thread.practices;
+package com.learning.concepts.thread.program_exercises;
 
-public class PrintPrimeAndOddDemo {
-    static void main(String[] args) {
-        PrintPrimeAndOdd printPrimeAndOdd = new PrintPrimeAndOdd(10);
+public class PrintEndAndOddDemo {
+    public static void main(String[] args) {
+        PrintEvenAndOdd printEvenAndOdd = new PrintEvenAndOdd(10);
 
-        Thread oddThread = new Thread(printPrimeAndOdd::printOdd);
+        Thread oddThread = new Thread(printEvenAndOdd::printOdd);
         oddThread.setName("Odd");
 
         Thread evenThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                printPrimeAndOdd.printEvent();
+                printEvenAndOdd.printEvent();
             }
         });
         evenThread.setName("Even");
@@ -20,11 +20,11 @@ public class PrintPrimeAndOddDemo {
     }
 }
 
-class PrintPrimeAndOdd {
+class PrintEvenAndOdd {
     volatile int counter = 1;
     int limit;
 
-    public PrintPrimeAndOdd(int limit) {
+    public PrintEvenAndOdd(int limit) {
         this.limit = limit;
     }
 

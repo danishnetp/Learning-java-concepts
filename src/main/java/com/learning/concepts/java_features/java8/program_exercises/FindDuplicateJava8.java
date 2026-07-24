@@ -1,4 +1,4 @@
-package com.learning.concepts.java_features.java8.program_exercise;
+package com.learning.concepts.java_features.java8.program_exercises;
 
 import java.util.Arrays;
 import java.util.HashSet;

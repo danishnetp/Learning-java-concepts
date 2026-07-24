@@ -1,4 +1,4 @@
-package com.learning.concepts.thread.practices;
+package com.learning.concepts.thread.program_exercises;
 
 public class StrictAlternateDemo1 {
     // shared variable

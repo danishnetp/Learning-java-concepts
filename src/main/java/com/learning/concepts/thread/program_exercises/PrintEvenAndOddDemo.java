@@ -1,6 +1,6 @@
 package com.learning.concepts.thread.program_exercises;
 
-public class PrintEndAndOddDemo {
+public class PrintEvenAndOddDemo {
     public static void main(String[] args) {
         PrintEvenAndOdd printEvenAndOdd = new PrintEvenAndOdd(10);
 
